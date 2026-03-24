@@ -1,19 +1,44 @@
+/* Light theme (default) */
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --surface-hover: #1c2129;
-  --border: #30363d;
-  --border-bright: #484f58;
-  --text: #e6edf3;
-  --text-muted: #8b949e;
-  --accent: #f78166;
-  --accent-dim: rgba(247, 129, 102, 0.15);
-  --green: #238636;
-  --green-hover: #2ea043;
-  --selected: rgba(56, 139, 253, 0.25);
-  --selected-border: #388bfd;
-  --danger: #f85149;
-  --radius: 8px;
+  --bg: #ffffff;
+  --surface: #f6f6f6;
+  --surface-hover: #ececec;
+  --border: #d0d0d0;
+  --border-bright: #b0b0b0;
+  --text: #1a1a1a;
+  --text-muted: #707070;
+  --accent: #1a1a1a;
+  --accent-dim: rgba(0, 0, 0, 0.06);
+  --green: #1a1a1a;
+  --green-hover: #333333;
+  --selected: rgba(0, 0, 0, 0.08);
+  --selected-border: #1a1a1a;
+  --danger: #cc0000;
+  --radius: 6px;
+  --code-bg: #f0f0f0;
+  --lightbox-bg: rgba(255, 255, 255, 0.92);
+  --modal-bg: rgba(0, 0, 0, 0.3);
+}
+
+/* Dark theme */
+[data-theme="dark"] {
+  --bg: #111111;
+  --surface: #1a1a1a;
+  --surface-hover: #222222;
+  --border: #333333;
+  --border-bright: #555555;
+  --text: #e0e0e0;
+  --text-muted: #888888;
+  --accent: #e0e0e0;
+  --accent-dim: rgba(255, 255, 255, 0.06);
+  --green: #e0e0e0;
+  --green-hover: #cccccc;
+  --selected: rgba(255, 255, 255, 0.08);
+  --selected-border: #e0e0e0;
+  --danger: #ff4444;
+  --code-bg: #222222;
+  --lightbox-bg: rgba(0, 0, 0, 0.92);
+  --modal-bg: rgba(0, 0, 0, 0.6);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,6 +50,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  transition: background 0.2s, color 0.2s;
 }
 
 /* Header */
@@ -43,9 +69,10 @@ header {
 .header-left h1 {
   font-size: 1.25rem;
   white-space: nowrap;
+  font-weight: 700;
 }
 
-.accent { color: var(--accent); }
+.accent { color: var(--text-muted); }
 
 .page-selector {
   display: flex;
@@ -95,6 +122,11 @@ header {
 }
 .btn-icon:hover { border-color: var(--border-bright); background: var(--surface-hover); }
 
+#btn-theme {
+  font-size: 1rem;
+  line-height: 1;
+}
+
 /* Main */
 main {
   flex: 1;
@@ -128,7 +160,7 @@ main {
 .item-card:hover { border-color: var(--border-bright); }
 .item-card.selected { border-color: var(--selected-border); background: var(--selected); }
 .item-card.dragging { opacity: 0.4; }
-.item-card.drag-over { border-color: var(--accent); border-style: dashed; }
+.item-card.drag-over { border-color: var(--text-muted); border-style: dashed; }
 
 .item-card .item-header {
   display: flex;
@@ -138,19 +170,21 @@ main {
 }
 
 .item-card .item-type {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   background: var(--bg);
   padding: 0.15rem 0.4rem;
-  border-radius: 4px;
+  border-radius: 3px;
+  font-weight: 600;
 }
 
 .item-card .item-label {
   font-size: 0.8rem;
-  color: var(--accent);
+  color: var(--text-muted);
   margin-left: 0.5rem;
+  font-style: italic;
 }
 
 .item-card .item-actions {
@@ -194,14 +228,14 @@ main {
   pointer-events: none;
 }
 .item-card.selected .item-body.text-body::after {
-  background: linear-gradient(transparent, rgba(56, 139, 253, 0.08));
+  background: linear-gradient(transparent, var(--selected));
 }
 .item-body.text-body.expanded::after { display: none; }
 
 .item-body.text-body h1, .item-body.text-body h2, .item-body.text-body h3 { margin: 0.5em 0 0.25em; }
 .item-body.text-body p { margin: 0.25em 0; }
-.item-body.text-body pre { background: var(--bg); padding: 0.5rem; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; }
-.item-body.text-body code { background: var(--bg); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
+.item-body.text-body pre { background: var(--code-bg); padding: 0.5rem; border-radius: 4px; overflow-x: auto; font-size: 0.8rem; }
+.item-body.text-body code { background: var(--code-bg); padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85em; }
 .item-body.text-body pre code { background: none; padding: 0; }
 .item-body.text-body ul, .item-body.text-body ol { padding-left: 1.5rem; }
 .item-body.text-body blockquote { border-left: 3px solid var(--border); padding-left: 0.75rem; color: var(--text-muted); }
@@ -233,9 +267,10 @@ main {
 .file-info .filename { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-info .filesize { font-size: 0.75rem; color: var(--text-muted); }
 .file-body a {
-  color: var(--accent);
+  color: var(--text);
   text-decoration: none;
   font-size: 0.8rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 .file-body a:hover { text-decoration: underline; }
@@ -250,13 +285,13 @@ main {
   cursor: pointer;
 }
 #drop-zone:hover, #drop-zone.drag-hover {
-  border-color: var(--accent);
+  border-color: var(--text-muted);
   background: var(--accent-dim);
 }
 .drop-icon { font-size: 2rem; margin-bottom: 0.5rem; }
 .drop-sub { color: var(--text-muted); font-size: 0.85rem; margin-top: 0.5rem; }
 .link, .link-btn {
-  color: var(--accent);
+  color: var(--text);
   cursor: pointer;
   text-decoration: underline;
   background: none;
@@ -294,7 +329,7 @@ main {
 .lightbox-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
+  background: var(--lightbox-bg);
   cursor: pointer;
 }
 .lightbox img {
@@ -302,6 +337,7 @@ main {
   max-width: 90vw;
   max-height: 90vh;
   border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
 }
 .lightbox #lightbox-close {
   position: absolute;
@@ -310,9 +346,9 @@ main {
   width: 40px;
   height: 40px;
   font-size: 1.5rem;
-  background: rgba(0, 0, 0, 0.5);
-  border: none;
-  color: white;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
 }
 
 /* Modals */
@@ -327,7 +363,7 @@ main {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--modal-bg);
   cursor: pointer;
 }
 .modal-content {
@@ -369,7 +405,7 @@ main {
   font-weight: 600;
   transition: all 0.15s;
 }
-.btn-primary { background: var(--green); color: white; border-color: var(--green); }
+.btn-primary { background: var(--green); color: var(--bg); border-color: var(--green); }
 .btn-primary:hover { background: var(--green-hover); }
 .btn-secondary { background: var(--surface); color: var(--text); }
 .btn-secondary:hover { background: var(--surface-hover); }

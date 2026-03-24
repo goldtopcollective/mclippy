@@ -591,9 +591,32 @@ function getFileIcon(mimeType) {
   return '\u{1F4C4}';
 }
 
+// ── Theme toggle ──
+
+function initTheme() {
+  const btn = document.getElementById('btn-theme');
+  const saved = localStorage.getItem('mclippy-theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  applyTheme(theme);
+
+  btn.onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    localStorage.setItem('mclippy-theme', next);
+  };
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('btn-theme').textContent = theme === 'dark' ? '\u2600' : '\u263E';
+}
+
 // ── Init ──
 
 async function init() {
+  initTheme();
   connectWS();
   initDropZone();
   initTrashZone();
