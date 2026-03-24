@@ -1,0 +1,30 @@
+{
+  "name": "mclippy",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.js && cp -r src/public dist/",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "connect-pg-simple": "^10.0.0",
+    "express": "^4.21.0",
+    "express-session": "^1.18.1",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/connect-pg-simple": "^7.0.3",
+    "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.0",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "@types/ws": "^8.5.13",
+    "esbuild": "^0.27.4",
+    "typescript": "^5.7.0"
+  }
+}

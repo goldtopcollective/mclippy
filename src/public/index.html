@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MCliPpy</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>M<span class="accent">Cli</span>Ppy</h1>
+    </div>
+    <div class="page-selector">
+      <select id="page-select"></select>
+      <button id="btn-delete-page" class="btn-icon btn-danger" title="Delete page">&times;</button>
+      <button id="btn-new-page" class="btn-icon" title="New page">+</button>
+    </div>
+    <div class="header-right">
+      <form method="POST" action="/auth/logout" style="display:inline">
+        <button type="submit" class="btn-icon" title="Logout">&#x2192;</button>
+      </form>
+    </div>
+  </header>
+
+  <main>
+    <div id="items-grid"></div>
+
+    <div id="drop-zone">
+      <div class="drop-zone-content">
+        <div class="drop-icon">&#x1F4CB;</div>
+        <p>Drop files, images, or text here</p>
+        <p class="drop-sub">or <label for="file-input" class="link">browse</label> &middot; <button id="btn-paste-text" class="link-btn">paste text</button></p>
+        <input type="file" id="file-input" multiple hidden>
+      </div>
+    </div>
+  </main>
+
+  <!-- Image lightbox -->
+  <div id="lightbox" class="lightbox hidden">
+    <div class="lightbox-backdrop"></div>
+    <img id="lightbox-img" src="">
+    <button id="lightbox-close" class="btn-icon">&times;</button>
+  </div>
+
+  <!-- Text paste modal -->
+  <div id="paste-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>Paste text or markdown</h3>
+      <textarea id="paste-textarea" rows="10" placeholder="Paste or type here..."></textarea>
+      <div class="modal-actions">
+        <button id="paste-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="paste-submit" class="btn btn-primary">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New page modal -->
+  <div id="page-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>New page</h3>
+      <input type="text" id="page-name-input" placeholder="Page name (e.g. Project Alpha)">
+      <div class="modal-actions">
+        <button id="page-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="page-submit" class="btn btn-primary">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit text modal -->
+  <div id="edit-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>Edit text</h3>
+      <textarea id="edit-textarea" rows="10" placeholder="Edit content..."></textarea>
+      <div class="modal-actions">
+        <button id="edit-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="edit-submit" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trash zone (appears when dragging) -->
+  <div id="trash-zone" class="trash-zone hidden">
+    <span>&#x1F5D1; Drop to delete</span>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
