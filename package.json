@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "node build.js && cp -r src/public dist/",
+    "build": "node build.js",
     "start": "node dist/index.js"
   },
   "dependencies": {
