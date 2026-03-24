@@ -219,7 +219,7 @@ main {
   position: relative;
 }
 .item-body.text-body.expanded { max-height: none; }
-.item-body.text-body::after {
+.item-body.text-body.overflowing::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -229,7 +229,7 @@ main {
   background: linear-gradient(transparent, var(--surface));
   pointer-events: none;
 }
-.item-card.selected .item-body.text-body::after {
+.item-card.selected .item-body.text-body.overflowing::after {
   background: linear-gradient(transparent, var(--selected));
 }
 .item-body.text-body.expanded::after { display: none; }

@@ -269,9 +269,14 @@ function renderItems() {
     if (item.type === 'text') {
       body.className += ' text-body';
       body.innerHTML = marked.parse(item.content || '');
+      // Only show fade gradient if content actually overflows
+      requestAnimationFrame(() => {
+        if (body.scrollHeight > body.clientHeight) body.classList.add('overflowing');
+      });
       body.addEventListener('dblclick', (e) => {
         e.stopPropagation();
         body.classList.toggle('expanded');
+        body.classList.remove('overflowing');
       });
     } else if (item.type === 'image') {
       body.className += ' image-body';
