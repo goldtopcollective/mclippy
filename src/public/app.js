@@ -298,15 +298,27 @@ function renderItems() {
     if (item.type === 'text') {
       body.className += ' text-body';
       body.innerHTML = marked.parse(item.content || '');
-      // Only show fade gradient if content actually overflows
-      requestAnimationFrame(() => {
-        if (body.scrollHeight > body.clientHeight) body.classList.add('overflowing');
-      });
-      body.addEventListener('dblclick', (e) => {
+
+      const expandBtn = document.createElement('button');
+      expandBtn.className = 'expand-btn hidden';
+      expandBtn.innerHTML = '&#x25BC;';
+      expandBtn.title = 'Expand';
+      expandBtn.onclick = (e) => {
         e.stopPropagation();
-        body.classList.toggle('expanded');
-        body.classList.remove('overflowing');
+        const isExpanded = body.classList.toggle('expanded');
+        body.classList.toggle('overflowing', !isExpanded);
+        expandBtn.innerHTML = isExpanded ? '&#x25B2;' : '&#x25BC;';
+        expandBtn.title = isExpanded ? 'Collapse' : 'Expand';
+      };
+
+      requestAnimationFrame(() => {
+        if (body.scrollHeight > body.clientHeight) {
+          body.classList.add('overflowing');
+          expandBtn.classList.remove('hidden');
+        }
       });
+
+      body.appendChild(expandBtn);
     } else if (item.type === 'image') {
       body.className += ' image-body';
       const img = document.createElement('img');
