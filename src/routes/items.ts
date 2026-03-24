@@ -14,7 +14,7 @@ const upload = multer({
 router.get('/page/:pageId', async (req: Request, res: Response) => {
   const items = await queryAll(
     'SELECT id, page_id, type, content, filename, mime_type, file_size, label, position, selected, created_at FROM items WHERE page_id = $1 ORDER BY position, id',
-    [req.params.pageId]
+    [parseInt(req.params.pageId)]
   );
   // Don't send full content for files/images in list view — send a flag
   const mapped = items.map(i => ({
@@ -27,14 +27,14 @@ router.get('/page/:pageId', async (req: Request, res: Response) => {
 
 // Get full item (including binary content)
 router.get('/:id', async (req: Request, res: Response) => {
-  const item = await queryOne('SELECT * FROM items WHERE id = $1', [req.params.id]);
+  const item = await queryOne('SELECT * FROM items WHERE id = $1', [parseInt(req.params.id)]);
   if (!item) { res.status(404).json({ error: 'Not found' }); return; }
   res.json(item);
 });
 
 // Download file/image
 router.get('/:id/download', async (req: Request, res: Response) => {
-  const item = await queryOne('SELECT content, filename, mime_type, type FROM items WHERE id = $1', [req.params.id]);
+  const item = await queryOne('SELECT content, filename, mime_type, type FROM items WHERE id = $1', [parseInt(req.params.id)]);
   if (!item || !item.content) { res.status(404).json({ error: 'Not found' }); return; }
 
   const buffer = Buffer.from(item.content, 'base64');
@@ -123,7 +123,7 @@ router.patch('/:id/text', async (req: Request, res: Response) => {
   if (!content) { res.status(400).json({ error: 'content required' }); return; }
   const item = await queryOne(
     'UPDATE items SET content = $1 WHERE id = $2 AND type = $3 RETURNING id, page_id, type, content, label, position, selected',
-    [content, req.params.id, 'text']
+    [content, parseInt(req.params.id), 'text']
   );
   if (!item) { res.status(404).json({ error: 'Not found or not a text item' }); return; }
   broadcast({ type: 'item:updated', item });
@@ -132,9 +132,9 @@ router.patch('/:id/text', async (req: Request, res: Response) => {
 
 // Delete item
 router.delete('/:id', async (req: Request, res: Response) => {
-  const item = await queryOne('SELECT id, page_id FROM items WHERE id = $1', [req.params.id]);
+  const item = await queryOne('SELECT id, page_id FROM items WHERE id = $1', [parseInt(req.params.id)]);
   if (!item) { res.status(404).json({ error: 'Not found' }); return; }
-  await query('DELETE FROM items WHERE id = $1', [req.params.id]);
+  await query('DELETE FROM items WHERE id = $1', [parseInt(req.params.id)]);
   broadcast({ type: 'item:removed', itemId: item.id, pageId: item.page_id });
   res.json({ ok: true });
 });
@@ -144,7 +144,7 @@ router.patch('/:id/select', async (req: Request, res: Response) => {
   const { selected } = req.body;
   const item = await queryOne(
     'UPDATE items SET selected = $1 WHERE id = $2 RETURNING id, page_id, selected',
-    [selected ?? true, req.params.id]
+    [selected ?? true, parseInt(req.params.id)]
   );
   if (!item) { res.status(404).json({ error: 'Not found' }); return; }
   broadcast({ type: 'item:selected', itemId: item.id, pageId: item.page_id, selected: item.selected });
@@ -162,7 +162,7 @@ router.post('/select', async (req: Request, res: Response) => {
 
 // Clear all selections on a page
 router.post('/deselect-all/:pageId', async (req: Request, res: Response) => {
-  await query('UPDATE items SET selected = false WHERE page_id = $1', [req.params.pageId]);
+  await query('UPDATE items SET selected = false WHERE page_id = $1', [parseInt(req.params.pageId)]);
   broadcast({ type: 'items:deselect-all', pageId: parseInt(req.params.pageId) });
   res.json({ ok: true });
 });

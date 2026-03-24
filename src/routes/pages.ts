@@ -34,7 +34,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Cannot delete the last page' });
     return;
   }
-  await query('DELETE FROM pages WHERE id = $1', [id]);
+  await query('DELETE FROM pages WHERE id = $1', [parseInt(id)]);
   res.json({ ok: true });
 });
 
@@ -47,7 +47,7 @@ router.patch('/:id', async (req: Request, res: Response) => {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const page = await queryOne(
     'UPDATE pages SET name = $1, slug = $2 WHERE id = $3 RETURNING *',
-    [name, slug, id]
+    [name, slug, parseInt(id)]
   );
   res.json(page);
 });
