@@ -14,16 +14,16 @@ router.get('/auth/login', (req: Request, res: Response) => {
   res.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>MCliPpy — Login</title>
 <style>
-  body { font-family: -apple-system, system-ui, sans-serif; background: #0d1117; color: #e6edf3;
+  body { font-family: -apple-system, system-ui, sans-serif; background: #111; color: #e0e0e0;
     display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-  .login-box { text-align: center; padding: 3rem; border-radius: 12px; background: #161b22; border: 1px solid #30363d; }
+  .login-box { text-align: center; padding: 3rem; border-radius: 12px; background: #1a1a1a; border: 1px solid #333; }
   h1 { font-size: 2rem; margin-bottom: 0.5rem; }
-  h1 span { color: #f78166; }
-  p { color: #8b949e; margin-bottom: 2rem; }
-  .error { color: #f85149; margin-bottom: 1rem; }
-  a.btn { display: inline-block; padding: 12px 24px; background: #238636; color: #fff; text-decoration: none;
+  h1 span { color: #5eb3ff; }
+  p { color: #888; margin-bottom: 2rem; }
+  .error { color: #ff4444; margin-bottom: 1rem; }
+  a.btn { display: inline-block; padding: 12px 24px; background: #e0e0e0; color: #111; text-decoration: none;
     border-radius: 6px; font-weight: 600; transition: background 0.2s; }
-  a.btn:hover { background: #2ea043; }
+  a.btn:hover { background: #ccc; }
 </style></head><body>
 <div class="login-box">
   <h1>M<span>Cli</span>Ppy</h1>
