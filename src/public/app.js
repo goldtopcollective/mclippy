@@ -241,6 +241,35 @@ function renderItems() {
       actions.appendChild(downBtn);
     }
 
+    // Copy button
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.title = 'Copy to clipboard';
+    copyBtn.innerHTML = '&#x2398;';
+    copyBtn.onclick = async (e) => {
+      e.stopPropagation();
+      try {
+        if (item.type === 'text') {
+          await navigator.clipboard.writeText(item.content);
+        } else {
+          const res = await fetch(`/api/items/${item.id}/download?inline=1`);
+          const blob = await res.blob();
+          if (item.type === 'image' && navigator.clipboard.write) {
+            await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+          } else {
+            // Files — copy filename as text fallback
+            await navigator.clipboard.writeText(item.filename || 'file');
+          }
+        }
+        copyBtn.innerHTML = '&#x2713;';
+        setTimeout(() => { copyBtn.innerHTML = '&#x2398;'; }, 1500);
+      } catch (err) {
+        copyBtn.innerHTML = '!';
+        setTimeout(() => { copyBtn.innerHTML = '&#x2398;'; }, 1500);
+      }
+    };
+    actions.appendChild(copyBtn);
+
     // Edit button (text items only)
     if (item.type === 'text') {
       const editBtn = document.createElement('button');
