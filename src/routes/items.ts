@@ -25,6 +25,18 @@ router.get('/page/:pageId', async (req: Request, res: Response) => {
   res.json(mapped);
 });
 
+// Get selected items (across all pages or specific page) — must be before /:id
+router.get('/selected', async (req: Request, res: Response) => {
+  const pageId = req.query.page_id;
+  let items;
+  if (pageId) {
+    items = await queryAll('SELECT * FROM items WHERE selected = true AND page_id = $1 ORDER BY position', [parseInt(pageId as string)]);
+  } else {
+    items = await queryAll('SELECT * FROM items WHERE selected = true ORDER BY page_id, position');
+  }
+  res.json(items);
+});
+
 // Get full item (including binary content)
 router.get('/:id', async (req: Request, res: Response) => {
   const item = await queryOne('SELECT * FROM items WHERE id = $1', [parseInt(req.params.id)]);
@@ -177,18 +189,6 @@ router.post('/reorder', async (req: Request, res: Response) => {
   }
   broadcast({ type: 'items:reordered', itemIds: item_ids });
   res.json({ ok: true });
-});
-
-// Get selected items (across all pages or specific page)
-router.get('/selected', async (req: Request, res: Response) => {
-  const pageId = req.query.page_id;
-  let items;
-  if (pageId) {
-    items = await queryAll('SELECT * FROM items WHERE selected = true AND page_id = $1 ORDER BY position', [pageId]);
-  } else {
-    items = await queryAll('SELECT * FROM items WHERE selected = true ORDER BY page_id, position');
-  }
-  res.json(items);
 });
 
 export default router;
