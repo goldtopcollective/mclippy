@@ -174,8 +174,17 @@ function renderItems() {
 
   state.items.forEach((item, index) => {
     const card = document.createElement('div');
-    card.className = 'item-card' + (item.selected ? ' selected' : '');
+    card.className = 'item-card' + (item.selected ? ' selected' : '') + (item._deleted ? ' deleted' : '');
     card.dataset.id = item.id;
+
+    // Deleted state — show undo bar instead of content
+    if (item._deleted) {
+      card.innerHTML = `<div class="deleted-bar">Deleted <span class="delete-countdown">${item._deleteCountdown}</span>s &middot; <button class="undo-btn">Undo</button></div>`;
+      card.querySelector('.undo-btn').onclick = (e) => { e.stopPropagation(); undoDelete(item.id); };
+      grid.appendChild(card);
+      return;
+    }
+
     card.draggable = true;
 
     // Click to toggle selection
@@ -351,7 +360,52 @@ async function toggleSelect(item) {
   await api(`/items/${item.id}/select`, { method: 'PATCH', body: JSON.stringify({ selected: newVal }) });
 }
 
-async function deleteItem(id) {
+const pendingDeletes = new Map(); // itemId -> { timer, interval }
+
+function deleteItem(id) {
+  // If already pending, skip
+  if (pendingDeletes.has(id)) return;
+
+  const item = state.items.find(i => i.id === id);
+  if (!item) return;
+
+  item._deleted = true;
+  item._deleteCountdown = 20;
+  renderItems();
+
+  const interval = setInterval(() => {
+    item._deleteCountdown--;
+    const countdownEl = document.querySelector(`.item-card[data-id="${id}"] .delete-countdown`);
+    if (countdownEl) countdownEl.textContent = item._deleteCountdown;
+    if (item._deleteCountdown <= 0) confirmDelete(id);
+  }, 1000);
+
+  const timer = setTimeout(() => confirmDelete(id), 20000);
+  pendingDeletes.set(id, { timer, interval });
+}
+
+function undoDelete(id) {
+  const pending = pendingDeletes.get(id);
+  if (pending) {
+    clearTimeout(pending.timer);
+    clearInterval(pending.interval);
+    pendingDeletes.delete(id);
+  }
+  const item = state.items.find(i => i.id === id);
+  if (item) {
+    delete item._deleted;
+    delete item._deleteCountdown;
+    renderItems();
+  }
+}
+
+async function confirmDelete(id) {
+  const pending = pendingDeletes.get(id);
+  if (pending) {
+    clearTimeout(pending.timer);
+    clearInterval(pending.interval);
+    pendingDeletes.delete(id);
+  }
   state.items = state.items.filter(i => i.id !== id);
   renderItems();
   await api(`/items/${id}`, { method: 'DELETE' });
