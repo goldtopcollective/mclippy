@@ -591,6 +591,35 @@ function initModals() {
     pasteTextarea.value = '';
   };
 
+  // Paste image from clipboard (Clipboard API)
+  const pasteImageBtn = document.getElementById('btn-paste-image');
+  pasteImageBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!state.currentPage) return;
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      let found = false;
+      for (const clipItem of clipboardItems) {
+        const imageType = clipItem.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await clipItem.getType(imageType);
+          const ext = imageType.split('/')[1] || 'png';
+          const file = new File([blob], `clipboard-${Date.now()}.${ext}`, { type: imageType });
+          addFileItem(file);
+          found = true;
+        }
+      }
+      if (!found) {
+        pasteImageBtn.textContent = 'no image in clipboard';
+        setTimeout(() => { pasteImageBtn.textContent = 'paste image'; }, 2000);
+      }
+    } catch (err) {
+      pasteImageBtn.textContent = 'clipboard access denied';
+      setTimeout(() => { pasteImageBtn.textContent = 'paste image'; }, 2000);
+    }
+  });
+
   // New page modal
   const pageBtn = document.getElementById('btn-new-page');
   const pageModal = document.getElementById('page-modal');
