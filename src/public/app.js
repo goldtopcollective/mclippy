@@ -521,7 +521,7 @@ function initDropZone() {
     fileInput.value = '';
   });
 
-  // Paste handler (global)
+  // Paste handler (global) — images/files take priority over text
   document.addEventListener('paste', (e) => {
     if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
     if (!state.currentPage) return;
@@ -529,14 +529,20 @@ function initDropZone() {
     const items = e.clipboardData?.items;
     if (!items) return;
 
+    // Check for files first (screenshots, dragged images, etc.)
+    let hasFiles = false;
     for (const item of items) {
       if (item.kind === 'file') {
         const file = item.getAsFile();
-        if (file) addFileItem(file);
-      } else if (item.kind === 'string' && item.type === 'text/plain') {
-        item.getAsString(text => {
-          if (text.trim()) addTextItem(text);
-        });
+        if (file) { addFileItem(file); hasFiles = true; }
+      }
+    }
+    // Only fall back to text if no files were pasted
+    if (!hasFiles) {
+      for (const item of items) {
+        if (item.kind === 'string' && item.type === 'text/plain') {
+          item.getAsString(text => { if (text.trim()) addTextItem(text); });
+        }
       }
     }
   });
@@ -590,35 +596,6 @@ function initModals() {
     pasteModal.classList.add('hidden');
     pasteTextarea.value = '';
   };
-
-  // Paste image from clipboard (Clipboard API)
-  const pasteImageBtn = document.getElementById('btn-paste-image');
-  pasteImageBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!state.currentPage) return;
-    try {
-      const clipboardItems = await navigator.clipboard.read();
-      let found = false;
-      for (const clipItem of clipboardItems) {
-        const imageType = clipItem.types.find(t => t.startsWith('image/'));
-        if (imageType) {
-          const blob = await clipItem.getType(imageType);
-          const ext = imageType.split('/')[1] || 'png';
-          const file = new File([blob], `clipboard-${Date.now()}.${ext}`, { type: imageType });
-          addFileItem(file);
-          found = true;
-        }
-      }
-      if (!found) {
-        pasteImageBtn.textContent = 'no image in clipboard';
-        setTimeout(() => { pasteImageBtn.textContent = 'paste image'; }, 2000);
-      }
-    } catch (err) {
-      pasteImageBtn.textContent = 'clipboard access denied';
-      setTimeout(() => { pasteImageBtn.textContent = 'paste image'; }, 2000);
-    }
-  });
 
   // New page modal
   const pageBtn = document.getElementById('btn-new-page');
