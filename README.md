@@ -42,7 +42,7 @@ A shared clipboard with MCP integration. Paste text, images, and files from any 
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth client secret |
 | `GOOGLE_REDIRECT_URI` | Yes | OAuth callback URL (`https://your-domain.com/auth/google/callback`) |
-| `ALLOWED_ADMIN_EMAIL` | Yes | Google email address allowed to log in |
+| `ALLOWED_ADMIN_EMAILS` | Yes | Comma-separated Google email addresses allowed to log in |
 | `MCLIPPY_API_KEY` | Yes | API key for MCP and widget access |
 | `SESSION_SECRET` | Yes | Random string for session encryption |
 | `PUBLIC_URL` | No | Public URL (defaults to `http://localhost:3000`) |

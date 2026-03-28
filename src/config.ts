@@ -17,7 +17,7 @@ export const config = {
     clientSecret: required('GOOGLE_CLIENT_SECRET'),
     redirectUri: required('GOOGLE_REDIRECT_URI'),
   },
-  allowedEmail: required('ALLOWED_ADMIN_EMAIL'),
+  allowedEmails: required('ALLOWED_ADMIN_EMAILS').split(',').map(e => e.trim().toLowerCase()),
   apiKey: required('MCLIPPY_API_KEY'),
   publicUrl: optional('PUBLIC_URL', 'http://localhost:3000'),
   maxFileSize: 25 * 1024 * 1024, // 25MB

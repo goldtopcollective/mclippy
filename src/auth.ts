@@ -84,7 +84,7 @@ router.get('/auth/google/callback', async (req: Request, res: Response) => {
     });
     const user = await userRes.json();
 
-    if (user.email !== config.allowedEmail) {
+    if (!config.allowedEmails.includes(user.email.toLowerCase())) {
       res.redirect('/auth/login?error=not_allowed');
       return;
     }
