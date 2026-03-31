@@ -279,14 +279,6 @@ function renderItems() {
     };
     actions.appendChild(copyBtn);
 
-    // Fullscreen button
-    const fsBtn = document.createElement('button');
-    fsBtn.className = 'fullscreen-btn';
-    fsBtn.title = 'Fullscreen';
-    fsBtn.innerHTML = '&#x26F6;';
-    fsBtn.onclick = (e) => { e.stopPropagation(); openFullscreen(item); };
-    actions.appendChild(fsBtn);
-
     // Edit button (text items only)
     if (item.type === 'text') {
       const editBtn = document.createElement('button');
@@ -671,54 +663,12 @@ function initLightbox() {
   document.getElementById('lightbox-close').onclick = () => lb.classList.add('hidden');
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      document.getElementById('fullscreen-view').classList.add('hidden');
       lb.classList.add('hidden');
       document.getElementById('paste-modal').classList.add('hidden');
       document.getElementById('page-modal').classList.add('hidden');
       document.getElementById('edit-modal').classList.add('hidden');
     }
   });
-}
-
-// ── Fullscreen card view ──
-
-function openFullscreen(item) {
-  const view = document.getElementById('fullscreen-view');
-  const body = document.getElementById('fullscreen-body');
-  const typeEl = view.querySelector('.fullscreen-type');
-  const labelEl = view.querySelector('.fullscreen-label');
-
-  typeEl.textContent = item.type;
-  labelEl.textContent = item.label || '';
-  body.innerHTML = '';
-  body.className = 'fullscreen-body';
-
-  if (item.type === 'text') {
-    body.classList.add('fullscreen-text');
-    body.innerHTML = marked.parse(item.content || '');
-  } else if (item.type === 'image') {
-    body.classList.add('fullscreen-image');
-    const img = document.createElement('img');
-    img.src = `/api/items/${item.id}/download?inline=1`;
-    img.alt = item.filename || 'image';
-    body.appendChild(img);
-  } else {
-    body.classList.add('fullscreen-file');
-    body.innerHTML = `
-      <span class="file-icon">${getFileIcon(item.mime_type)}</span>
-      <div class="filename">${esc(item.filename || 'file')}</div>
-      <div class="filesize">${formatBytes(item.file_size || 0)}</div>
-      <a href="/api/items/${item.id}/download" target="_blank">Download</a>
-    `;
-  }
-
-  view.classList.remove('hidden');
-}
-
-function initFullscreen() {
-  const view = document.getElementById('fullscreen-view');
-  view.querySelector('.fullscreen-backdrop').onclick = () => view.classList.add('hidden');
-  document.getElementById('fullscreen-close').onclick = () => view.classList.add('hidden');
 }
 
 // ── Helpers ──
@@ -778,7 +728,6 @@ async function init() {
   initTrashZone();
   initModals();
   initLightbox();
-  initFullscreen();
   await loadPages();
 }
 
