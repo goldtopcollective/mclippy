@@ -283,7 +283,7 @@ function renderItems() {
     const fsBtn = document.createElement('button');
     fsBtn.className = 'fullscreen-btn';
     fsBtn.title = 'Fullscreen';
-    fsBtn.innerHTML = '&#x26F6;';
+    fsBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 5V1h4M9 1h4v4M13 9v4H9M5 13H1V9"/></svg>';
     fsBtn.onclick = (e) => { e.stopPropagation(); openFullscreen(item); };
     actions.appendChild(fsBtn);
 
