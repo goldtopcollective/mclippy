@@ -142,7 +142,13 @@ export function createMcpServer(): McpServer {
     'Push a checklist of items the user can tick off in the browser. Returns the item id and the per-checkbox ids needed to toggle items later.',
     {
       page: z.string().optional().default('general').describe('Page slug or ID'),
-      items: z.array(z.string()).min(1).describe('Checklist item texts, in order'),
+      items: z.array(z.union([
+        z.string(),
+        z.object({
+          text: z.string(),
+          checked: z.boolean().optional(),
+        }),
+      ])).min(1).describe('Checklist items, in order. Strings become unchecked items; objects may set initial checked state (e.g. {text: "foo", checked: true}).'),
       label: z.string().optional().describe('Optional title for the checklist'),
     },
     async ({ page, items, label }) => {
