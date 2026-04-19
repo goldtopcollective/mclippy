@@ -44,7 +44,7 @@ export async function migrate() {
     CREATE TABLE IF NOT EXISTS items (
       id SERIAL PRIMARY KEY,
       page_id INTEGER REFERENCES pages(id) ON DELETE CASCADE,
-      type TEXT NOT NULL CHECK (type IN ('text', 'image', 'file')),
+      type TEXT NOT NULL,
       content TEXT,
       filename TEXT,
       mime_type TEXT,
@@ -56,6 +56,10 @@ export async function migrate() {
     );
 
     CREATE INDEX IF NOT EXISTS idx_items_page ON items (page_id, position);
+
+    ALTER TABLE items DROP CONSTRAINT IF EXISTS items_type_check;
+    ALTER TABLE items ADD CONSTRAINT items_type_check
+      CHECK (type IN ('text', 'image', 'file', 'checklist'));
   `);
 
   // Ensure a default page exists

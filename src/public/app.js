@@ -82,6 +82,16 @@ function handleWSMessage(msg) {
       }
       break;
 
+    case 'item:moved':
+      if (msg.fromPageId === state.currentPage?.id) {
+        state.items = state.items.filter(i => i.id !== msg.item.id);
+        renderItems();
+      } else if (msg.item.page_id === state.currentPage?.id) {
+        state.items.push(msg.item);
+        renderItems();
+      }
+      break;
+
     case 'items:reordered':
       const orderMap = {};
       msg.itemIds.forEach((id, i) => orderMap[id] = i);
@@ -190,6 +200,7 @@ function renderItems() {
     // Click to toggle selection
     card.addEventListener('click', (e) => {
       if (e.target.closest('.item-actions') || e.target.closest('a') || e.target.tagName === 'IMG') return;
+      if (e.target.closest('.checklist-body')) return;
       toggleSelect(item);
     });
 
@@ -289,6 +300,45 @@ function renderItems() {
       actions.appendChild(editBtn);
     }
 
+    // Move to page button (only if more than one page)
+    if (state.pages.length > 1) {
+      const moveBtn = document.createElement('button');
+      moveBtn.className = 'move-page-btn';
+      moveBtn.title = 'Move to page';
+      moveBtn.innerHTML = '&#x21C4;';
+      moveBtn.onclick = (e) => {
+        e.stopPropagation();
+        // Toggle dropdown
+        const existing = card.querySelector('.move-dropdown');
+        if (existing) { existing.remove(); return; }
+        // Close any other open dropdowns
+        document.querySelectorAll('.move-dropdown').forEach(d => d.remove());
+        const dropdown = document.createElement('div');
+        dropdown.className = 'move-dropdown';
+        state.pages.filter(p => p.id !== state.currentPage.id).forEach(p => {
+          const opt = document.createElement('button');
+          opt.className = 'move-dropdown-item';
+          opt.textContent = p.name;
+          opt.onclick = (e2) => {
+            e2.stopPropagation();
+            dropdown.remove();
+            moveItemToPage(item.id, p.id);
+          };
+          dropdown.appendChild(opt);
+        });
+        card.appendChild(dropdown);
+        // Close on outside click
+        const close = (e2) => {
+          if (!dropdown.contains(e2.target) && e2.target !== moveBtn) {
+            dropdown.remove();
+            document.removeEventListener('click', close);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', close), 0);
+      };
+      actions.appendChild(moveBtn);
+    }
+
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.title = 'Delete';
@@ -336,6 +386,9 @@ function renderItems() {
       img.loading = 'lazy';
       img.onclick = (e) => { e.stopPropagation(); openLightbox(img.src); };
       body.appendChild(img);
+    } else if (item.type === 'checklist') {
+      body.className += ' checklist-body';
+      renderChecklistBody(body, item);
     } else {
       body.className += ' file-body';
       body.innerHTML = `
@@ -350,6 +403,130 @@ function renderItems() {
 
     card.appendChild(body);
     grid.appendChild(card);
+  });
+}
+
+// ── Checklist ──
+
+function parseChecklistContent(content) {
+  if (!content) return { items: [] };
+  try {
+    const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+    if (!parsed || !Array.isArray(parsed.items)) return { items: [] };
+    return { items: parsed.items };
+  } catch {
+    return { items: [] };
+  }
+}
+
+function renderChecklistBody(body, item) {
+  body.innerHTML = '';
+  const list = parseChecklistContent(item.content);
+
+  const ul = document.createElement('ul');
+  ul.className = 'checklist-items';
+  list.items.forEach(ci => {
+    const li = document.createElement('li');
+    li.className = 'checklist-item' + (ci.checked ? ' checked' : '');
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!ci.checked;
+    cb.onclick = (e) => {
+      e.stopPropagation();
+      toggleChecklistItem(item.id, ci.id, cb.checked);
+    };
+
+    const text = document.createElement('span');
+    text.className = 'checklist-text';
+    text.textContent = ci.text;
+    text.onclick = (e) => {
+      e.stopPropagation();
+      cb.checked = !cb.checked;
+      toggleChecklistItem(item.id, ci.id, cb.checked);
+    };
+
+    const remove = document.createElement('button');
+    remove.className = 'checklist-remove';
+    remove.title = 'Remove item';
+    remove.innerHTML = '&times;';
+    remove.onclick = (e) => {
+      e.stopPropagation();
+      removeChecklistItem(item.id, ci.id);
+    };
+
+    li.appendChild(cb);
+    li.appendChild(text);
+    li.appendChild(remove);
+    ul.appendChild(li);
+  });
+  body.appendChild(ul);
+
+  // Add-new-item input
+  const addRow = document.createElement('div');
+  addRow.className = 'checklist-add';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.placeholder = '+ add item';
+  input.onclick = (e) => e.stopPropagation();
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (text) {
+        addChecklistItem(item.id, text);
+        input.value = '';
+      }
+    }
+  };
+  addRow.appendChild(input);
+  body.appendChild(addRow);
+}
+
+async function toggleChecklistItem(itemId, checkId, checked) {
+  // Optimistic update
+  const item = state.items.find(i => i.id === itemId);
+  if (item) {
+    const list = parseChecklistContent(item.content);
+    const target = list.items.find(c => c.id === checkId);
+    if (target) {
+      target.checked = checked;
+      item.content = JSON.stringify(list);
+      renderItems();
+    }
+  }
+  await api(`/items/${itemId}/checklist/toggle`, {
+    method: 'PATCH',
+    body: JSON.stringify({ check_id: checkId, checked }),
+  });
+}
+
+async function addChecklistItem(itemId, text) {
+  const item = state.items.find(i => i.id === itemId);
+  if (!item) return;
+  const list = parseChecklistContent(item.content);
+  list.items.push({ id: 'tmp_' + Math.random().toString(36).slice(2, 8), text, checked: false });
+  await api(`/items/${itemId}/checklist`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items: list.items }),
+  });
+}
+
+async function removeChecklistItem(itemId, checkId) {
+  const item = state.items.find(i => i.id === itemId);
+  if (!item) return;
+  const list = parseChecklistContent(item.content);
+  list.items = list.items.filter(c => c.id !== checkId);
+  await api(`/items/${itemId}/checklist`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items: list.items }),
+  });
+}
+
+async function addChecklist(items, label) {
+  await api('/items/checklist', {
+    method: 'POST',
+    body: JSON.stringify({ page_id: state.currentPage.id, items, label }),
   });
 }
 
@@ -425,6 +602,12 @@ async function moveItem(fromIndex, toIndex) {
   renderItems();
 
   await api('/items/reorder', { method: 'POST', body: JSON.stringify({ item_ids: ids }) });
+}
+
+async function moveItemToPage(itemId, targetPageId) {
+  state.items = state.items.filter(i => i.id !== itemId);
+  renderItems();
+  await api(`/items/${itemId}/move`, { method: 'PATCH', body: JSON.stringify({ page_id: targetPageId }) });
 }
 
 async function reorderItem(draggedId, targetId) {
@@ -628,6 +811,32 @@ function initModals() {
     if (e.key === 'Enter') document.getElementById('page-submit').click();
   });
 
+  // New checklist modal
+  const checklistBtn = document.getElementById('btn-new-checklist');
+  const checklistModal = document.getElementById('checklist-modal');
+  const checklistLabel = document.getElementById('checklist-label-input');
+  const checklistItems = document.getElementById('checklist-items-input');
+
+  checklistBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    checklistModal.classList.remove('hidden');
+    checklistItems.focus();
+  });
+  const closeChecklist = () => {
+    checklistModal.classList.add('hidden');
+    checklistLabel.value = '';
+    checklistItems.value = '';
+  };
+  document.getElementById('checklist-cancel').onclick = closeChecklist;
+  checklistModal.querySelector('.modal-backdrop').onclick = closeChecklist;
+  document.getElementById('checklist-submit').onclick = () => {
+    const label = checklistLabel.value.trim();
+    const lines = checklistItems.value.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) addChecklist(lines, label || undefined);
+    closeChecklist();
+  };
+
   // Edit text modal
   const editModal = document.getElementById('edit-modal');
   const editTextarea = document.getElementById('edit-textarea');
@@ -667,6 +876,7 @@ function initLightbox() {
       document.getElementById('paste-modal').classList.add('hidden');
       document.getElementById('page-modal').classList.add('hidden');
       document.getElementById('edit-modal').classList.add('hidden');
+      document.getElementById('checklist-modal').classList.add('hidden');
     }
   });
 }

@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { queryOne, queryAll, query } from '../db';
 import { broadcast } from '../websocket';
+import { parseChecklist, serializeChecklist, normaliseChecklistInput } from '../routes/items';
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
@@ -30,9 +31,14 @@ export function createMcpServer(): McpServer {
       [pageRow.id]
     );
 
-    // For images/files, truncate content and indicate it's available
+    // For images/files, truncate content and indicate it's available.
+    // For checklists, parse JSON into a structured `checklist` field.
     const mapped = items.map((i: any) => {
       if (i.type === 'text') return i;
+      if (i.type === 'checklist') {
+        const list = parseChecklist(i.content);
+        return { ...i, content: undefined, checklist: list.items };
+      }
       return {
         ...i,
         content: `[${i.type}: ${i.filename || 'unnamed'}, ${formatBytes(i.file_size)}. Use get item endpoint to retrieve full content]`,
@@ -56,8 +62,13 @@ export function createMcpServer(): McpServer {
       items = await queryAll('SELECT i.id, i.type, i.content, i.filename, i.mime_type, i.file_size, i.label, i.position, i.created_at, p.name as page_name, p.slug as page_slug FROM items i JOIN pages p ON i.page_id = p.id WHERE i.selected = true ORDER BY i.page_id, i.position');
     }
 
-    // For binary items, describe but don't send full content
+    // For binary items, describe but don't send full content.
+    // For checklists, parse into a structured field.
     const mapped = items.map((i: any) => {
+      if (i.type === 'checklist') {
+        const list = parseChecklist(i.content);
+        return { ...i, content: undefined, checklist: list.items };
+      }
       if (i.type !== 'text') {
         return { ...i, content: `[${i.type}: ${i.filename}, ${formatBytes(i.file_size)}]` };
       }
@@ -124,6 +135,151 @@ export function createMcpServer(): McpServer {
     );
     broadcast({ type: 'item:added', item: { ...item, has_content: true } });
     return { content: [{ type: 'text', text: `Added file "${filename}" (${formatBytes(file_size)}) to page "${page}"` }] };
+  });
+
+  server.tool(
+    'push_checklist',
+    'Push a checklist of items the user can tick off in the browser. Returns the item id and the per-checkbox ids needed to toggle items later.',
+    {
+      page: z.string().optional().default('general').describe('Page slug or ID'),
+      items: z.array(z.string()).min(1).describe('Checklist item texts, in order'),
+      label: z.string().optional().describe('Optional title for the checklist'),
+    },
+    async ({ page, items, label }) => {
+      const pageRow = await queryOne('SELECT id FROM pages WHERE slug = $1 OR id::text = $1', [page]);
+      if (!pageRow) return { content: [{ type: 'text', text: 'Page not found' }], isError: true };
+
+      const checklistItems = normaliseChecklistInput(items);
+      if (checklistItems.length === 0) {
+        return { content: [{ type: 'text', text: 'items must contain at least one non-empty entry' }], isError: true };
+      }
+
+      const content = serializeChecklist({ items: checklistItems });
+      const maxPos = await queryOne<{ max: number }>('SELECT COALESCE(MAX(position), -1) as max FROM items WHERE page_id = $1', [pageRow.id]);
+      const item = await queryOne(
+        'INSERT INTO items (page_id, type, content, label, position) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [pageRow.id, 'checklist', content, label || null, (maxPos?.max ?? -1) + 1]
+      );
+
+      // Re-read the row so the broadcast carries the current shape (incl. position, selected, created_at)
+      const full = await queryOne('SELECT * FROM items WHERE id = $1', [item.id]);
+      broadcast({ type: 'item:added', item: full });
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            ok: true,
+            item_id: item.id,
+            page,
+            label: label || null,
+            checklist: checklistItems,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  server.tool(
+    'toggle_checklist_item',
+    'Tick or untick a single item inside a checklist card.',
+    {
+      item_id: z.number().describe('The checklist card id (the item.id returned by push_checklist)'),
+      check_id: z.string().describe('The per-checkbox id (returned in the checklist array)'),
+      checked: z.boolean().optional().describe('Force a state. Omit to toggle.'),
+    },
+    async ({ item_id, check_id, checked }) => {
+      const existing = await queryOne('SELECT id, page_id, content FROM items WHERE id = $1 AND type = $2', [item_id, 'checklist']);
+      if (!existing) return { content: [{ type: 'text', text: 'Checklist not found' }], isError: true };
+
+      const list = parseChecklist(existing.content);
+      const target = list.items.find(i => i.id === check_id);
+      if (!target) return { content: [{ type: 'text', text: `check_id "${check_id}" not found in checklist` }], isError: true };
+      target.checked = typeof checked === 'boolean' ? checked : !target.checked;
+
+      const item = await queryOne(
+        'UPDATE items SET content = $1 WHERE id = $2 RETURNING id, page_id, type, content, label, position, selected, created_at',
+        [serializeChecklist(list), existing.id]
+      );
+      broadcast({ type: 'item:updated', item });
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Set "${target.text}" → ${target.checked ? 'checked' : 'unchecked'}`,
+        }],
+      };
+    },
+  );
+
+  server.tool(
+    'update_checklist',
+    'Replace the items and/or label of an existing checklist card. Use this to add/remove items or rename the title.',
+    {
+      item_id: z.number().describe('The checklist card id'),
+      items: z.array(z.union([
+        z.string(),
+        z.object({
+          id: z.string().optional(),
+          text: z.string(),
+          checked: z.boolean().optional(),
+        }),
+      ])).optional().describe('Replacement items. Strings become unchecked items; objects keep their id/checked state.'),
+      label: z.string().nullable().optional().describe('New title. Pass null to clear.'),
+    },
+    async ({ item_id, items, label }) => {
+      const existing = await queryOne('SELECT id, page_id, content, label FROM items WHERE id = $1 AND type = $2', [item_id, 'checklist']);
+      if (!existing) return { content: [{ type: 'text', text: 'Checklist not found' }], isError: true };
+
+      let newContent = existing.content;
+      if (items !== undefined) {
+        const next = normaliseChecklistInput(items);
+        newContent = serializeChecklist({ items: next });
+      }
+      const newLabel = label === undefined ? existing.label : (label || null);
+
+      const item = await queryOne(
+        'UPDATE items SET content = $1, label = $2 WHERE id = $3 RETURNING id, page_id, type, content, label, position, selected, created_at',
+        [newContent, newLabel, existing.id]
+      );
+      broadcast({ type: 'item:updated', item });
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            ok: true,
+            item_id: item.id,
+            label: item.label,
+            checklist: parseChecklist(item.content).items,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  server.tool('move_item', 'Move an item to a different page', {
+    item_id: z.number().describe('Item ID to move'),
+    target_page: z.string().describe('Target page slug or ID'),
+  }, async ({ item_id, target_page }) => {
+    const item = await queryOne('SELECT id, page_id FROM items WHERE id = $1', [item_id]);
+    if (!item) return { content: [{ type: 'text', text: 'Item not found' }], isError: true };
+
+    const targetPageRow = await queryOne('SELECT id, name, slug FROM pages WHERE slug = $1 OR id::text = $1', [target_page]);
+    if (!targetPageRow) return { content: [{ type: 'text', text: 'Target page not found' }], isError: true };
+
+    if (item.page_id === targetPageRow.id) {
+      return { content: [{ type: 'text', text: `Item #${item_id} is already on page "${targetPageRow.name}"` }] };
+    }
+
+    const fromPageId = item.page_id;
+    const maxPos = await queryOne<{ max: number }>('SELECT COALESCE(MAX(position), -1) as max FROM items WHERE page_id = $1', [targetPageRow.id]);
+    const updated = await queryOne(
+      'UPDATE items SET page_id = $1, position = $2 WHERE id = $3 RETURNING id, page_id, type, filename, label, position',
+      [targetPageRow.id, (maxPos?.max ?? -1) + 1, item_id]
+    );
+    broadcast({ type: 'item:moved', item: updated, fromPageId });
+    return { content: [{ type: 'text', text: `Moved item #${item_id} to page "${targetPageRow.name}"` }] };
   });
 
   server.tool('remove_item', 'Remove an item from the clipboard', {

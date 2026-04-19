@@ -4,7 +4,7 @@ A shared clipboard with MCP integration. Paste text, images, and files from any 
 
 ## What it does
 
-- **Shared clipboard** — paste, drag-and-drop, or upload text (markdown), images, and file attachments
+- **Shared clipboard** — paste, drag-and-drop, or upload text (markdown), images, file attachments, and toggleable checklists
 - **Real-time sync** — WebSocket-powered, changes appear instantly on all connected devices
 - **MCP server** — Claude Code (or any MCP-compatible client) can read, push, and manage clipboard items
 - **Shared selection** — select items in the browser and the MCP client sees what's selected (and vice versa), so you can say "the ones I'm selecting now"
@@ -21,6 +21,9 @@ A shared clipboard with MCP integration. Paste text, images, and files from any 
 | `push_text` | Push text/markdown to the clipboard |
 | `push_image` | Push a base64 image |
 | `push_file` | Push a file attachment |
+| `push_checklist` | Push a list of items the user can tick off in the browser |
+| `toggle_checklist_item` | Tick or untick a single checkbox in a checklist card |
+| `update_checklist` | Replace the items or label of a checklist card |
 | `remove_item` | Delete an item |
 | `select_item` | Select items (visible to all clients) |
 | `deselect_item` | Deselect items |

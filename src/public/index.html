@@ -32,7 +32,7 @@
       <div class="drop-zone-content">
         <div class="drop-icon">&#x1F4CB;</div>
         <p>Drop files, images, or text here</p>
-        <p class="drop-sub">or <label for="file-input" class="link">browse</label> &middot; <button id="btn-paste-text" class="link-btn">paste text</button></p>
+        <p class="drop-sub">or <label for="file-input" class="link">browse</label> &middot; <button id="btn-paste-text" class="link-btn">paste text</button> &middot; <button id="btn-new-checklist" class="link-btn">new checklist</button></p>
         <input type="file" id="file-input" multiple hidden>
       </div>
     </div>
@@ -80,6 +80,20 @@
       <div class="modal-actions">
         <button id="edit-cancel" class="btn btn-secondary">Cancel</button>
         <button id="edit-submit" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New checklist modal -->
+  <div id="checklist-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h3>New checklist</h3>
+      <input type="text" id="checklist-label-input" placeholder="Title (optional)">
+      <textarea id="checklist-items-input" rows="8" placeholder="One item per line..."></textarea>
+      <div class="modal-actions">
+        <button id="checklist-cancel" class="btn btn-secondary">Cancel</button>
+        <button id="checklist-submit" class="btn btn-primary">Create</button>
       </div>
     </div>
   </div>
