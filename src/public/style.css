@@ -344,7 +344,7 @@ main {
 }
 
 .checklist-item.checked .checklist-text {
-  text-decoration: line-through;
+  font-style: italic;
   color: var(--text-muted);
 }
 
