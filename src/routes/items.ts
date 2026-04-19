@@ -219,6 +219,26 @@ router.patch('/:id/checklist/toggle', async (req: Request, res: Response) => {
   res.json(item);
 });
 
+// Append items to an existing checklist (bulk add)
+router.post('/:id/checklist/items', async (req: Request, res: Response) => {
+  const { items } = req.body;
+  const existing = await queryOne('SELECT id, page_id, content FROM items WHERE id = $1 AND type = $2', [parseInt(req.params.id), 'checklist']);
+  if (!existing) { res.status(404).json({ error: 'Not found or not a checklist' }); return; }
+
+  const additions = normaliseChecklistInput(items);
+  if (additions.length === 0) { res.status(400).json({ error: 'items must be a non-empty array' }); return; }
+
+  const list = parseChecklist(existing.content);
+  list.items.push(...additions);
+
+  const item = await queryOne(
+    'UPDATE items SET content = $1 WHERE id = $2 RETURNING id, page_id, type, content, label, position, selected, created_at',
+    [serializeChecklist(list), existing.id]
+  );
+  broadcast({ type: 'item:updated', item });
+  res.json(item);
+});
+
 // Replace checklist items wholesale (or rename label)
 router.patch('/:id/checklist', async (req: Request, res: Response) => {
   const { items, label } = req.body;

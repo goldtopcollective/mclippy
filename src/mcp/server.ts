@@ -213,6 +213,51 @@ export function createMcpServer(): McpServer {
   );
 
   server.tool(
+    'append_checklist_items',
+    'Append one or more items to an existing checklist card in a single call. Use this instead of calling update_checklist repeatedly when adding to a list.',
+    {
+      item_id: z.number().describe('The checklist card id'),
+      items: z.array(z.union([
+        z.string(),
+        z.object({
+          text: z.string(),
+          checked: z.boolean().optional(),
+        }),
+      ])).min(1).describe('Items to append. Strings become unchecked items; objects may set checked state.'),
+    },
+    async ({ item_id, items }) => {
+      const existing = await queryOne('SELECT id, page_id, content FROM items WHERE id = $1 AND type = $2', [item_id, 'checklist']);
+      if (!existing) return { content: [{ type: 'text', text: 'Checklist not found' }], isError: true };
+
+      const additions = normaliseChecklistInput(items);
+      if (additions.length === 0) {
+        return { content: [{ type: 'text', text: 'items must contain at least one non-empty entry' }], isError: true };
+      }
+
+      const list = parseChecklist(existing.content);
+      list.items.push(...additions);
+
+      const item = await queryOne(
+        'UPDATE items SET content = $1 WHERE id = $2 RETURNING id, page_id, type, content, label, position, selected, created_at',
+        [serializeChecklist(list), existing.id]
+      );
+      broadcast({ type: 'item:updated', item });
+
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify({
+            ok: true,
+            item_id: item.id,
+            added: additions,
+            checklist: list.items,
+          }, null, 2),
+        }],
+      };
+    },
+  );
+
+  server.tool(
     'update_checklist',
     'Replace the items and/or label of an existing checklist card. Use this to add/remove items or rename the title.',
     {
